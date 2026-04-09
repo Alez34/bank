@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Банковская система - Абстрактный счет</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px 30px 30px 30px;
+        }
+        h1 {
+            color: #1e2a3a;
+            border-left: 5px solid #2c7da0;
+            padding-left: 20px;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #5a6e7c;
+            margin-bottom: 30px;
+            padding-left: 25px;
+            font-style: italic;
+        }
+        .card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        .account-card {
+            background: #fefefe;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            padding: 20px;
+            flex: 1 1 300px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+        .account-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .account-type {
+            background: #2c7da0;
+            color: white;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
+        .detail-row {
+            margin: 10px 0;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #e2e8f0;
+            padding: 4px 0;
+        }
+        .status-active { color: #2e7d32; font-weight: bold; }
+        .status-frozen { color: #ed6c02; font-weight: bold; }
+        .status-closed { color: #d32f2f; font-weight: bold; }
+        .balance {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #0f3b2c;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #eef2f6;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        button.deposit { background: #c8e6d9; color: #1b5e3f; }
+        button.withdraw { background: #ffe0b2; color: #bf360c; }
+        button.freeze { background: #ffecb3; color: #9c6e00; }
+        button.close-acc { background: #ffcdd2; color: #b71c1c; }
+        button.info { background: #d9e8f5; color: #0a3e6d; }
+        button:hover { filter: brightness(0.95); transform: scale(0.97); }
+        .error-log {
+            background: #1e293b;
+            color: #facc15;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 16px;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .error-log h3 {
+            margin-top: 0;
+            color: #facc15;
+        }
+        .log-entry {
+            border-bottom: 1px solid #334155;
+            padding: 6px 0;
+        }
+        .actions-panel {
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        hr {
+            margin: 25px 0;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5a6e7c;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏦 Банковская система</h1>
+    <div class="subtitle">Абстрактный счет · BankAccount с расширенной логикой и кастомными ошибками</div>
+
+    <div class="card-grid" id="accountsGrid"></div>
+
+    <div class="actions-panel">
+        <h3>➕ Создать новый счет</h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+            <div>
+                <label>Владелец: </label>
+                <input type="text" id="ownerName" placeholder="Иван Петров" value="Клиент Банка">
+            </div>
+            <div>
+                <label>Валюта: </label>
+                <select id="currencySelect">
+                    <option value="RUB">RUB</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="KZT">KZT</option>
+                    <option value="CNY">CNY</option>
+                </select>
+            </div>
+            <div>
+                <label>Начальный баланс: </label>
+                <input type="number" id="initialBalance" value="1000" step="1">
+            </div>
+            <div>
+                <label>ID (опционально): </label>
+                <input type="text" id="customId" placeholder="Автогенерация">
+            </div>
+            <button id="createAccountBtn" style="background:#2c7da0; color:white;">Создать счет</button>
+        </div>
+    </div>
+
+    <div class="error-log" id="errorLog">
+        <h3>📋 Журнал операций / Ошибки</h3>
+        <div id="logMessages">✨ Система готова. Используйте кнопки на карточках счетов.</div>
+    </div>
+    <footer>Кастомные исключения: AccountFrozenError, AccountClosedError, InvalidOperationError, InsufficientFundsError</footer>
+</div>
+
+<script>
+    // ---------- 1. КАСТОМНЫЕ КЛАССЫ ОШИБОК ----------
+    class AccountFrozenError extends Error {
+        constructor(message) {
+            super(message);
+            this.name = "AccountFrozenError";
+        }
+    }
+    class AccountClosedError extends Error {
+        constructor(message) {
+            super(message);
+            this.name = "AccountClosedError";
+        }
+    }
+    class InvalidOperationError extends Error {
+        constructor(message) {
+            super(message);
+            this.name = "InvalidOperationError";
+        }
+    }
+    class InsufficientFundsError extends Error {
+        constructor(message) {
+            super(message);
+            this.name = "InsufficientFundsError";
+        }
+    }
+
+    // ---------- 2. АБСТРАКТНЫЙ КЛАСС AbstractAccount (имитация абстракции в JS) ----------
+    class AbstractAccount {
+        // Уникальный айди счета, данные владельца, защищенный баланс, статус
+        constructor(accountId, owner, initialBalance = 0) {
+            if (new.target === AbstractAccount) {
+                throw new Error("Невозможно создать экземпляр абстрактного класса AbstractAccount");
+            }
+            this._accountId = accountId;        // уникальный айди
+            this._owner = owner;                // данные владельца
+            this._balance = initialBalance;     // защищенный баланс (используем соглашение _)
+            this._status = "active";            // активный, замороженный, закрытый
+        }
+
+        // Геттеры для доступа (для печати и логики)
+        get accountId() { return this._accountId; }
+        get owner() { return this._owner; }
+        get balance() { return this._balance; }
+        get status() { return this._status; }
+
+        set status(newStatus) {
+            if (["active", "frozen", "closed"].includes(newStatus)) {
+                this._status = newStatus;
+            } else {
+                throw new InvalidOperationError(`Недопустимый статус: ${newStatus}`);
+            }
+        }
+
+        // Абстрактные методы (будут переопределены)
+        deposit(amount) { throw new Error("Метод deposit должен быть реализован"); }
+        withdraw(amount) { throw new Error("Метод withdraw должен быть реализован"); }
+        getAccountInfo() { throw new Error("Метод getAccountInfo должен быть реализован"); }
+
+        // Защищённый метод для проверки статуса перед операциями (используется в наследнике)
+        _checkStatusForOperation() {
+            if (this._status === "frozen") {
+                throw new AccountFrozenError(`Счет ${this._accountId} заморожен. Операция невозможна.`);
+            }
+            if (this._status === "closed") {
+                throw new AccountClosedError(`Счет ${this._accountId} закрыт. Операции недоступны.`);
+            }
+        }
+
+        // Вспомогательная валидация суммы (положительное число)
+        static validateAmount(amount, operationName = "операция") {
+            if (typeof amount !== "number" || isNaN(amount)) {
+                throw new InvalidOperationError(`Сумма должна быть числом для ${operationName}`);
+            }
+            if (amount <= 0) {
+                throw new InvalidOperationError(`Сумма ${amount} недопустима. ${operationName} требует положительное значение.`);
+            }
+            return true;
+        }
+    }
+
+    // ---------- 3. КЛАСС BankAccount (наследует AbstractAccount) ----------
+    class BankAccount extends AbstractAccount {
+        // Дополнительные атрибуты: валюта, автоматическая генерация короткого айди при его отсутствии
+        constructor(accountId, owner, currency = "RUB", initialBalance = 0, customId = null) {
+            // Валидация валюты
+            const allowedCurrencies = ["RUB", "USD", "EUR", "KZT", "CNY"];
+            if (!allowedCurrencies.includes(currency)) {
+                throw new InvalidOperationError(`Валюта ${currency} не поддерживается. Допустимые: ${allowedCurrencies.join(", ")}`);
+            }
+            // Автоматическая генерация короткого айди, если передан пустой/null/undefined
+            let finalId = accountId;
+            if (!finalId || finalId.trim() === "") {
+                finalId = BankAccount.generateShortId();
+            }
+            // Валидация начального баланса (неотрицательный, но мы разрешаем 0)
+            if (typeof initialBalance !== "number" || isNaN(initialBalance) || initialBalance < 0) {
+                throw new InvalidOperationError("Начальный баланс должен быть неотрицательным числом");
+            }
+            super(finalId, owner, initialBalance);
+            this._currency = currency;
+            this._shortId = finalId;      // сохраняем как короткий ID (может быть сгенерирован)
+        }
+
+        // Статический метод для генерации короткого ID (6 символов: буквы + цифры)
+        static generateShortId() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let result = "";
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Получить последние 4 символа номера (если ID короче 4, то возвращаем сам ID)
+        getLastFourDigits() {
+            const idStr = this._accountId.toString();
+            if (idStr.length <= 4) return idStr;
+            return idStr.slice(-4);
+        }
+
+        // Реализация deposit с валидацией и проверкой статуса
+        deposit(amount) {
+            AbstractAccount.validateAmount(amount, "пополнение");
+            this._checkStatusForOperation();      // проверка frozen/closed
+            this._balance += amount;
+            return this._balance;
+        }
+
+        // Реализация withdraw: проверка статуса, достаточность средств
+        withdraw(amount) {
+            AbstractAccount.validateAmount(amount, "снятие");
+            this._checkStatusForOperation();
+            if (this._balance < amount) {
+                throw new InsufficientFundsError(
+                    `Недостаточно средств на счете ${this._accountId}. Доступно: ${this._balance} ${this._currency}, запрошено: ${amount}`
+                );
+            }
+            this._balance -= amount;
+            return this._balance;
+        }
+
+        // Полная информация о счете в виде объекта (для печати)
+        getAccountInfo() {
+            return {
+                type: "BankAccount",
+                owner: this._owner,
+                lastFour: this.getLastFourDigits(),
+                status: this._status,
+                balance: this._balance,
+                currency: this._currency,
+                fullId: this._accountId
+            };
+        }
+
+        // Переопределяем toString для удобного вывода в UI, соответствует требованиям печати класса:
+        // тип счета, клиента, последние 4 цифры номера, статус, баланс и валюта
+        toString() {
+            const info = this.getAccountInfo();
+            const statusEmoji = info.status === "active" ? "🟢" : (info.status === "frozen" ? "🔶" : "🔴");
+            return `${info.type} | ${info.owner} | ***${info.lastFour} | ${statusEmoji} ${info.status.toUpperCase()} | ${info.balance.toFixed(2)} ${info.currency}`;
+        }
+
+        // Дополнительные методы управления статусом (расширение)
+        freeze() {
+            if (this._status === "closed") {
+                throw new AccountClosedError("Нельзя заморозить закрытый счет");
+            }
+            this._status = "frozen";
+        }
+
+        close() {
+            if (this._status === "closed") {
+                throw new InvalidOperationError("Счет уже закрыт");
+            }
+            this._status = "closed";
+        }
+
+        activate() {
+            if (this._status === "closed") {
+                throw new AccountClosedError("Нельзя активировать закрытый счет");
+            }
+            this._status = "active";
+        }
+
+        // Геттеры для UI
+        get currency() { return this._currency; }
+    }
+
+    // ---------- 4. ДЕМОНСТРАЦИЯ И ХРАНИЛИЩЕ СЧЕТОВ ----------
+    let accounts = [];   // массив экземпляров BankAccount
+
+    // Вспомогательная функция для логирования (и в журнал, и в консоль)
+    function addLog(message, isError = false) {
+        const logDiv = document.getElementById("logMessages");
+        const entry = document.createElement("div");
+        entry.className = "log-entry";
+        const timestamp = new Date().toLocaleTimeString();
+        if (isError) {
+            entry.style.color = "#f87171";
+            entry.style.borderLeft = "3px solid #ef4444";
+            entry.style.paddingLeft = "8px";
+            entry.innerHTML = `[${timestamp}] ❌ ${message}`;
+        } else {
+            entry.style.color = "#bbf7d0";
+            entry.innerHTML = `[${timestamp}] ✅ ${message}`;
+        }
+        logDiv.prepend(entry);  // новые сообщения сверху
+        if (isError) console.error(message);
+        else console.log(message);
+    }
+
+    // Функция рендеринга всех карточек счетов
+    function renderAccounts() {
+        const grid = document.getElementById("accountsGrid");
+        if (accounts.length === 0) {
+            grid.innerHTML = `<div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 20px;">💼 Нет открытых счетов. Создайте новый счет выше.</div>`;
+            return;
+        }
+        grid.innerHTML = "";
+        accounts.forEach((acc, idx) => {
+            const info = acc.getAccountInfo();
+            const statusClass = info.status === "active" ? "status-active" : (info.status === "frozen" ? "status-frozen" : "status-closed");
+            const statusText = info.status === "active" ? "Активен" : (info.status === "frozen" ? "Заморожен" : "Закрыт");
+
+            const card = document.createElement("div");
+            card.className = "account-card";
+            card.innerHTML = `
+                <div class="card-header">
+                    <span>🏦 ${info.type}</span>
+                    <span class="account-type">${info.currency}</span>
+                </div>
+                <div class="detail-row"><strong>Владелец:</strong> ${escapeHtml(info.owner)}</div>
+                <div class="detail-row"><strong>ID счета:</strong> ${escapeHtml(acc.accountId)}</div>
+                <div class="detail-row"><strong>Последние 4 цифры:</strong> ${info.lastFour}</div>
+                <div class="detail-row"><strong>Статус:</strong> <span class="${statusClass}">${statusText}</span></div>
+                <div class="detail-row balance"><strong>Баланс:</strong> ${info.balance.toFixed(2)} ${info.currency}</div>
+                <div class="button-group">
+                    <button class="deposit" data-idx="${idx}" data-action="deposit">💰 Пополнить</button>
+                    <button class="withdraw" data-idx="${idx}" data-action="withdraw">💸 Снять</button>
+                    <button class="freeze" data-idx="${idx}" data-action="freeze">❄️ Заморозить</button>
+                    <button class="close-acc" data-idx="${idx}" data-action="close">🔒 Закрыть</button>
+                    <button class="info" data-idx="${idx}" data-action="info">📄 Инфо</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        // Добавляем обработчики событий на кнопки (делегирование)
+        document.querySelectorAll(".deposit, .withdraw, .freeze, .close-acc, .info").forEach(btn => {
+            btn.removeEventListener("click", handleButtonClick);
+            btn.addEventListener("click", handleButtonClick);
+        });
+    }
+
+    function handleButtonClick(event) {
+        const btn = event.currentTarget;
+        const action = btn.getAttribute("data-action");
+        const idx = parseInt(btn.getAttribute("data-idx"));
+        if (isNaN(idx) || !accounts[idx]) {
+            addLog("Ошибка: счет не найден", true);
+            return;
+        }
+        const account = accounts[idx];
+        try {
+            switch (action) {
+                case "deposit": {
+                    let amount = parseFloat(prompt("Введите сумму для пополнения:", "500"));
+                    if (isNaN(amount)) throw new InvalidOperationError("Введено некорректное число");
+                    const newBalance = account.deposit(amount);
+                    addLog(`${account.owner} пополнил счет ${account.accountId} на ${amount} ${account.currency}. Новый баланс: ${newBalance} ${account.currency}`);
+                    renderAccounts();
+                    break;
+                }
+                case "withdraw": {
+                    let amount = parseFloat(prompt("Введите сумму для снятия:", "200"));
+                    if (isNaN(amount)) throw new InvalidOperationError("Введено некорректное число");
+                    const newBalance = account.withdraw(amount);
+                    addLog(`${account.owner} снял ${amount} ${account.currency} со счета ${account.accountId}. Остаток: ${newBalance} ${account.currency}`);
+                    renderAccounts();
+                    break;
+                }
+                case "freeze": {
+                    account.freeze();
+                    addLog(`Счет ${account.accountId} (${account.owner}) ЗАМОРОЖЕН. Операции по пополнению/снятию запрещены.`);
+                    renderAccounts();
+                    break;
+                }
+                case "close": {
+                    account.close();
+                    addLog(`Счет ${account.accountId} (${account.owner}) ЗАКРЫТ. Дальнейшие операции невозможны.`);
+                    renderAccounts();
+                    break;
+                }
+                case "info": {
+                    const info = account.getAccountInfo();
+                    const msg = `[${info.type}] Владелец: ${info.owner}, ID: ${info.fullId}, Последние 4: ${info.lastFour}, Статус: ${info.status}, Баланс: ${info.balance} ${info.currency}`;
+                    alert(msg);
+                    addLog(`Запрошена информация: ${msg}`);
+                    break;
+                }
+                default: break;
+            }
+        } catch (error) {
+            let errorMsg = `${error.name}: ${error.message}`;
+            addLog(errorMsg, true);
+            alert(`Ошибка: ${error.message}`);
+        }
+    }
+
+    // Создание нового счета с валидацией
+    function createNewAccount() {
+        const ownerInput = document.getElementById("ownerName").value.trim();
+        const currency = document.getElementById("currencySelect").value;
+        let initialBalance = parseFloat(document.getElementById("initialBalance").value);
+        const customIdInput = document.getElementById("customId").value.trim();
+
+        if (!ownerInput) {
+            alert("Введите имя владельца");
+            return;
+        }
+        if (isNaN(initialBalance)) initialBalance = 0;
+        if (initialBalance < 0) {
+            alert("Начальный баланс не может быть отрицательным");
+            return;
+        }
+
+        try {
+            // Проверка что customId (если введен) не повторяется (уникальность)
+            if (customIdInput !== "") {
+                const exists = accounts.some(acc => acc.accountId === customIdInput);
+                if (exists) {
+                    throw new InvalidOperationError(`Счет с ID ${customIdInput} уже существует. Используйте другой ID или оставьте поле пустым для автогенерации.`);
+                }
+            }
+            const newAccount = new BankAccount(customIdInput || "", ownerInput, currency, initialBalance, customIdInput);
+            accounts.push(newAccount);
+            addLog(`Создан новый счет: ${newAccount.toString()}`);
+            renderAccounts();
+            // Очистить поле customId для удобства
+            document.getElementById("customId").value = "";
+        } catch (err) {
+            addLog(`Ошибка создания счета: ${err.message}`, true);
+            alert(`Не удалось создать счет: ${err.message}`);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Инициализация демо-счетов (для наглядности)
+    function initDemoAccounts() {
+        try {
+            const acc1 = new BankAccount("ACC1", "Алексей Смирнов", "USD", 2500);
+            const acc2 = new BankAccount("X7K9", "Мария Иванова", "EUR", 1200);
+            const acc3 = new BankAccount("", "Олег Петров", "KZT", 50000); // авто-ID
+            accounts.push(acc1, acc2, acc3);
+            addLog(`Демо-счета созданы: ${acc1.toString()}, ${acc2.toString()}, ${acc3.toString()}`);
+        } catch(e) {
+            addLog("Ошибка демо-инициализации: " + e.message, true);
+        }
+        renderAccounts();
+    }
+
+    // Обработчики UI
+    document.getElementById("createAccountBtn").addEventListener("click", createNewAccount);
+    initDemoAccounts();
+</script>
+</body>
+</html>
